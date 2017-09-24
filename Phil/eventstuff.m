@@ -38,7 +38,16 @@ for i=1:cellnumber;
     findmaxrow(i)=max(length(nonzeros(tmatrix(i, :))));
 end
 tmatrix=tmatrix(:,1:max(findmaxrow));
-%% 
+%% NOW HAVE SPIKE TIMES FOR CELL
+for i=1:length(eventts);
+%In this loop, for each entry of events,find timestamps 2 secs prior and
+%post, then take cell spiking behavior during this time and plot all cells
+%over window using a PSTH where rows are cells and columns are timestamps
+%over 2 seconds
+%Howmuchdownsample? Ask phil? Also chech matlab for neuro binned spike data
+%and nerual analsis of data in coding
+end
+
 
 
 
