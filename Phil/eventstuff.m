@@ -103,44 +103,26 @@ category=1;
 eventts_by_cat=zeros(1, length(eventts));
 %Check to make sure event file reasonable
 for i=1:length(eventts);
+    currentevent=[]
     if eventts(i+1)<(eventts(i)+1);
-        eventts_by_cat(i)=category;
+        eventts_by_cat(i)=category; %Creating a dictionary to pair with eventts in 2Xn matrix classify events with an event number
+        currentevent=horzcat(currentevent,eventts(i));
+        
         % disp('same event') % Use to troubleshoot code
     else
-       category=category+1;
-       % disp('new event') % Use to troubleshoot code
-       break
+        category=category+1
+        eventts_by_cat(i)=category;
+        currentevent=horzcat(currentevent,eventts(i));
+        % disp('new event') % Use to troubleshoot code
     end
-%In this loop, for each entry of events,find timestamps 2 secs prior and
-%post, then take cell spiking behavior during this time and plot all cells
-%over window using a PSTH where rows are cells and columns are timestamps
-%over 2 seconds
-%Howmuchdownsample? Ask phil? Also chech matlab for neuro binned spike data
-%and nerual analsis of data in coding
+    PSTH_curr=zeros(length(tmatrix(:,1), length(tmatrix(1,currentevent(start):currentevent(end))
+    for i=1:length(tmatrix(:,1))
+        for ii=1:length(currentevent)
+            if ismember(currentevents(ii), tmatrix(i,:))
+                PSTH_curr(i,:)=tmatrix(i,currentevent(start):currentevent(end))
+            else
+                PSTH_curr(i,:)=0
+            end
+        end
+    end
 end
-
-% 
-% 
-
-
-
-
-
-
-
-
-% %% CREATE LOOP THAT LOADS .t FILES into a matrix of arrays
-% tmatrix=zeros(cellnumber,length(eventtimestamps))
-% for k=1:cellnumber;
-%     tfilename=strcat('TT',  num2str(date), '_', num2str(k))
-%     if exist(tfilename, 'file')
-%         datacurrent=load(tfilename);
-%     else
-%         fprintf('File %s does not exist./n', tfilename)
-%     end
-%     tmatrix(k,:)=datacurrent
-%     %now that a .t file has been loaded, extract its data into a array and
-%     %simultaneously concatenate vertically to .t matrix for given date of
-%     %interest
-%     k=k+1
-% end
