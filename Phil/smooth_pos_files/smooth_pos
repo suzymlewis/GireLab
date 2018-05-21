@@ -201,12 +201,12 @@ else
     end_ts = min(find(POS(:,1)<= timestamp_mat(end,2))); % Find minimum pt in common between OE and Positional Data (from Labview)
 end
 
-% CREATE UNIQUE TS VECTORS FOR INTERPOLATION
-    % For OE just use unique timepoints for interpolation output
-OE = unique(timestamp_mat(:,2));
-
 % CUBIC SPLINE INTERPOLATE TO GET POSITIONAL DATA FOR OE TIMESTAMPS
 smooth_pos = interp1(POS(:,1), POS(:,2:3), timestamp_mat(start_ts:end_ts,2), 'spline');
+
+% ADD OE TIMEPOINTS TO THE MATRIX
+smooth_pos(:,3)=  timestamp_mat(start_ts:end_ts,1);
+smooth_pos(:,4) = timestamp_mat(start_ts:end_ts,2);
 
 %% [2] LOW PASS FILTER TO REMOVE NOISE (Geisler et al., 2007)
     %Low-pass filter to determine kinematic signals @ 0.25 Hz (Chrobak et al., 2014)
