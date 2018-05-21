@@ -1,0 +1,220 @@
+function [smooth_pos stalled outside] = smooth_position(xlsx_behavior, messages_fn)
+
+%%%%%%% POSITIONAL SMOOTHING %%%%%%%%%%%%%%%%%%
+   
+	% THIS FUNCTION 
+        % [1] INTERPOLATES POSITIONAL DATA USING CUBIC SPLINE
+            % X/Y Coordinates from a tracked LED on the rat's head as it
+            % navigates an elevated plus maze during navigational based
+            % decision making task
+        % [2] BUTTERWORTH LOW PASS FILTERS TO REMOVE NON-PHYSIOLOGICAL RELEVANT MOTION
+    
+    % INPUT 
+        % xlsx_behavior = .xlxs behavioral file
+            % Columns 4:5 are x and y coordinates across sample timepoints (rows)
+            % Column 6 is the computer ms timer value of each sample
+        % messages_fn = filename of OEphys structure of paired timestamps
+            % Use this to index between behavioral data (Labview) and neural data (Open Ephys)
+    
+    % OUTPUT = Nx4 matrix where
+        % Rows:
+            % Row 1 = Smoothed positional data x coordinate
+            % Row 2 = Smoothed positional data y coordinate
+            % Row 3 = Computer ms timer value
+            % Row 4 = OE paired timestamp
+        % Columns = samples across time for entire session of .xlsx file
+        
+   % METHOLODOLY CITATION: http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0097987#pone.0097987.s001
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% EXTRACT RELEVANT FILES
+% LOAD MESSAGE FILE
+messages = importdata(messfilename);
+
+% EXTRACT N x 2 MATRIX FOR PAIRED TIMESTAMPS
+    % N : # of timepoints for given recording session
+timestamp_mat = messages.data;
+
+% EXTRACT XY COOR AND COMPTUER TIMESTAMPS FOR BEHAVIORAL DATA
+pos_mat = xlsx_behavior(:, 4:5);
+pos_mat_ts = xlsx_behavior(:,6);
+
+
+% CHECK FOR STAGNANT LED INDICATING TRACKING LOSS
+% Check to see if LED stagnant using xcoors for more than .5 second
+% Since coors floating decimal value sensitive enough to movement, can just check one dimension
+    % Should have at least some movement across 1/2 second
+stalled = find(diff(pos_mat(:,1))>= 500);
+if stalled
+    warning('LED tracker still for .25 sec in 1 dimension, please see "stalled" vector for indices or LED stalling')
+else
+    stalled=[nan];
+end
+
+%% SEE IF POINTS NEED TO BE REMOVED FOR INTERPOLATION
+    % Can not have any repeating time values for interpolation function on
+    % either input or output vector
+
+% FIND TIMEPOINTS WITH MULTIPLE POSITIONAL SAMPLES
+% Create vector with unique timepoints
+POS=unique(pos_mat_ts);
+
+% GRAB CORRESPONDING POSITIONAL DATA FOR 'POS' AND TAKE MEAN OF SAMPLES ACROSS TIMEPOINT
+% When multiple timepoints in 'pos_mat_ts' average across corresponding positional data
+for i=1:length(POS)
+    loop = find(pos_mat_ts==POS(i)); % Get all timepoints in 'pos_mat_ts' associated with unique looping timepoint
+    if loop > 1; % Chek for redundancies
+        newcoors = mean(pos_mat(loop,:),1); % Take mean across the timepoints for all x and y coors of timepoints
+        POS(i,2:3) = newcoors;
+    else % If unique point, no averaging needed
+        POS(i,2:3) = pos_mat(loop, :);
+    end
+end
+
+% IDENTIFY POINTS WHERE LED IS NOT ON MAZE
+% This script will run a max of 4 loops, one time for each between arm space on the t maze
+% When the figure pops up:
+    % [1] Hold down cursor torwards center platform of maze
+    % [2] Move out alongside the border of one arm until reach its end
+    % [3] Move curse straight to the end of the other arm encasing the quadrant
+        % This traces two sides of the triagle between the arms to select all out of bound points in quadrants
+tracking_error = zeros(1,3);
+for i = 1:4
+    % Creating tracking_error matrix to intialize for looping
+    prompt = 'Add points from an between arm quadrant? Yes = 1, No press enter : '; % Create prompt to see if user needs to address another quadrant
+    ans = input(prompt);
+    if ans== 1
+        figure, plot(pos_mat(:,1),pos_mat(:,2))
+        [pointslist,xselect,yselect] = selectdata('Action', 'list', 'Verify', 'on') % Allows user to select problem points
+        tracking_error = vertcat(tracking_error, horzcat(pointslist, xselect, yselect)); % Concatenate new points into tracking_error matrix
+        clear pointslist xselect yselect % Clear variables since will not be same size on each loop to avoid dimension mismatch error
+    else
+        break
+    end
+end
+tracking_error(1,:) = []; % Drop first row of tracking error since zeros due to vertcat command
+
+% CHECK TO SEE IF ANIMAL OUTSIDE LONGER THAN 1/2 SECOND
+% If the animal is outside the track more than .5 seconds:
+    % May not be able to account for velocity or position
+    % Chance animal make have varied velocity/position in non predictable way between the 2 points
+        % Perhaps check video footage or drop data
+        % Should consider removing this data from any positional or kinematic analysis
+outside=[]; % Vector to hold first index of tracking_error in for extended out of bound periods
+bounds= diff(tracking_error(:,1)); % Find differences between out of bound timestamps
+bounded= find(bounds>1); % Find indices of bounds when not consecutive or redundant
+indx = 1;
+for i=1:length(bounded)
+    if i==1
+        epoch = bounded(i)-1;
+    else
+        epoch = bounded(i)-bounded(i-1)-1; % Find number of consecutive timepoints out of bounds (length of out of bounds epoch)
+    end
+    if epoch > 500
+    outside(indx,1)= tracking_error((bounded(i-1)+1),1); % Retrieve timestamp for beginning of epoch
+    outside(indx,2) = epoch; %Also display length of epoch
+    warning('LED tracker outside track for more than .5, Check data before kinematic/positional analysis. Please see "outside" vector for indices') % Report to user if problematic epochs in positional data
+    indx= indx+1;
+    end
+end
+clear indx;
+
+
+
+% AVERAGE POSITIONAL DATA TO FIND COORS FOR OUT OF BOUND PERIODS
+    % If out of range:
+        % Average positional data across last timepoint before violation and first timepoint after
+
+% FIND START AND STOP TIMESTAMPS OF OUT OF BOUND (OOB) EPOCHS
+stops= vertcat(bounded, length(tracking_error));
+stops_ts = pos_mat_ts(tracking_error(stops));
+starts= vertcat(1, (bounded+1));
+starts_ts = pos_mat_ts(tracking_error(starts));
+
+% FIND ALL TIMESTAMPS IN POS DURING OOB EPCOHS
+bound_periods = {}; % Timestamps segmented into epochs
+out_bound = []; % Vector of all timestamps for easy indexing in later looping
+for i=1:length(bounded)
+     r = unique(pos_mat_ts(tracking_error(starts(i):stops(i))));
+     bound_periods{i} = r;
+     out_bound = vertcat(out_bound, r);
+end
+
+% LINEAR INTERPOLATE OOB TIMEPOINTS
+    % Coordinates in bounds stay the same
+OOB= [];
+for i = 1:length(bound_periods)
+    temp = bound_periods{i};
+    strt = find(POS ==(temp(1)))-1;
+    fin = find(POS == (temp(end)))+1;
+    
+    % Linear fit for interpolating out of bound period
+    newcoors = interp1 (POS([strt fin],1), POS([strt fin], 2:3), temp, 'linear');
+    bound_newcoors{i} = newcoors;
+    OOB = vertcat(OOB, newcoors);
+    clear newcoors
+end
+out_bound(:,2:3) = OOB;
+
+% UPDATE POS WITH OOB INTERPOLATED POSITIONAL DATA
+for i=1:length(out_bound)
+    temp = find(POS(:, 1)==out_bound(i));
+    POS(temp, 2:3) = out_bound(i, 2:3);
+end
+
+%% % [1] CUBIC SPLINE INTERPOLATION TO MATCH OE DATSA
+% % DOWNSAMPLE OE TIMESTAMPS TO MATCH NEURAL DATA
+%     % All ephys recordings decimated to 1250 Hz before analysis
+%     % Original Ephys signal @ 30KHz
+% for i=1:size(timestamp_mat, 2)
+%     downtime(:,i)=decimate(timestamp_mat(:,i), 24);
+% end% Downsample timestamps for .cont
+    
+% FIND INITIAL TIMESTAMP OF BEHAVIORAL DATA 4 INTERP
+    % Need to index into timestamp_mat to interpolate to avoid extrapolation outside of timerange in which animal was in maze, which in this case would make zero sense
+% See if Labview or OEPhy timestamps started first
+% It should not be the case ever I'm pretty sure BUT in case OE started first because someone started trial over or something and OE still running, set to use entire timestamp_mat to interpolate pts
+if timestamp_mat(1,2)<=POS(1,1)
+    start_ts = POS(1,1);
+    warning('Labview started after OE recording had begun, please check session data');
+    % Start indexing timestamp_mat (OE pts) only once positional data available
+    % If Labview started first, need to find first matching timepoint
+    % This shouldn't be the case but if someone restarted OE during
+    % setup or something maybe
+else
+    start_ts = min(find(POS(:,1)>= timestamp_mat(1,2))); % Find minimum pt in common between OE and Positional Data (from Labview)
+end
+
+% FIND FINAL TIMESTAMP OF BEHAVIORAL DATA 4 INTERP
+    % Labview will continue after OE so find final position timestamp
+    % relevant to OE recording
+if timestamp_mat(end,2)>=POS(end,1)
+    end_ts = max((find(timestamp_mat(:,2) <= POS(end,1)))); % Find max point in common between OE and Positional Data (from Labview)
+    differential = sum(find(timestamp_mat(end,2)>=POS(end,1))); % Sum the number of entries(timepoints) for which OE data exceeds positional data
+    warning(sprintf('Labview has exceeding OE recording by %d timestamp(s), please check session data as positional data is missing', differential));
+    % Start indexing timestamp_mat (OE pts) only once positional data available
+    % If Labview started first, need to find first matching timepoint
+    % This shouldn't be the case but if someone restarted OE during
+    % setup or something maybe
+else
+    end_ts = min(find(POS(:,1)<= timestamp_mat(end,2))); % Find minimum pt in common between OE and Positional Data (from Labview)
+end
+
+% CREATE UNIQUE TS VECTORS FOR INTERPOLATION
+    % For OE just use unique timepoints for interpolation output
+OE = unique(timestamp_mat(:,2));
+
+% CUBIC SPLINE INTERPOLATE TO GET POSITIONAL DATA FOR OE TIMESTAMPS
+smooth_pos = interp1(POS(:,1), POS(:,2:3), timestamp_mat(start_ts:end_ts,2), 'spline');
+
+%% [2] LOW PASS FILTER TO REMOVE NOISE (Geisler et al., 2007)
+    %Low-pass filter to determine kinematic signals @ 0.25 Hz (Chrobak et al., 2014)
+        % Filtering out non-coherent, higher frequency signals
+            % Removes articles like head-movement
+        % Enhances ability to observe correlations between theta and the relevant biomechanical signals
+Fs=30000; %sampling rate
+n=4; %filter order, integral
+fcutoff=0.25; % Set threshold
+[b,a]=butter(n,fcutoff/(Fs/2)); % Butterworth auto lowpass filter
+POS_filter(:,1:2) = filtfilt(b,a,POS(:,1:2)); %filter positional data across rows, since 2Xn transpose so timepoints across rows
