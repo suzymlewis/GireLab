@@ -1,4 +1,4 @@
-function [smooth_pos stalled outside] = smooth_position(xlsx_behavior, messages_fn)
+function [smooth_pos stalled outside] = smooth_position(xlsx_behavior, messfilename)
 
 %%%%%%% POSITIONAL SMOOTHING %%%%%%%%%%%%%%%%%%
    
