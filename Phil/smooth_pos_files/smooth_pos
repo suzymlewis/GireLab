@@ -19,8 +19,8 @@ function [smooth_pos stalled outside] = smooth_pos(xlsx_behavior, messfilename)
         % Rows:
             % Row 1 = Smoothed positional data x coordinate
             % Row 2 = Smoothed positional data y coordinate
-            % Row 3 = Computer ms timer value
-            % Row 4 = OE paired timestamp
+            % Row 3 = OE paired timestamp
+            % Row 4 = Computer ms timer value
         % Columns = samples across time for entire session of .xlsx file
         
    % METHOLODOLY CITATION: http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0097987#pone.0097987.s001
