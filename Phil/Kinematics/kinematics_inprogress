@@ -20,7 +20,11 @@ function [velocity acceleration] = kinematics(smooth_pos, smooth)
 
     % OUTPUT
         % 'velocity'
-            % Single vector representing instantaneous velocity of animal across the trial sampled at 1250 Hz
+            % N X 3 matrix
+                % Column 1: representing instantaneous velocity of animal across the trial sampled at 1250 Hz
+                % Columns 2: OE timepoints
+                % Column 3 : ms computer timestamp
+                    
         % 'acceleration'
             % Single vector representing instantaneous acceleration of animal across the trial sampled at 1250 Hz
     
@@ -46,6 +50,7 @@ be = uigetfile();
 [smooth_pos stalled outside] = smooth_pos(xlsx_behavior, messfilename);
  %%%%%%%%%%%%
 
+ %% ESTABLIST IF VALID SMOOTHING VARIABLE FOR FUNCTION
 if nargin < 1,
 	error('Incorrect number of parameters (type ''help <a href="matlab:help LinearVelocity">LinearVelocity</a>'' for details).');
 end
@@ -56,18 +61,38 @@ if nargin >= 2,
 else
 	smooth = 0;
 end
-%%%% THINGS THAT NEED TO BE CODED FOR THIS FUNCTION %%%%
+
+%% THINGS THAT NEED TO BE CODED FOR THIS FUNCTION %%%%
 %%%%%%%%%%%%%%%%%%%%%  Normalize coordinates
 %%%%%%%%%%%%%%%%%%%%%    Convert to cm
-%%%%%%%%%%%%%%%%%%%%%     Extract position between x,y coordinates
+%%%%%%%%%%%%%%%%%%%%%     Extract distance between x,y coordinates
 %%%%%%%%%%%%%%%%%%%%%       Low Pass Fitler
 %%%%%%%%%%%%%%%%%%%%%         Calc Velocity
 %%%%%%%%%%%%%%%%%%%%%           Calc Acceleration
 
-DX = Diff(X,'smooth',smooth);
-Y = DX(:,2:3).*DX(:,2:3);
-N = sqrt(Y(:,1)+Y(:,2));
-V = [X(:,1) N];
+%% NORMALIZE COORDINATES
+maxima = [max(smooth_pos(:, 1) max(smooth_pos(:, 2)];
+minima = [min(smooth_pos(:, 1) min(smooth_pos(:, 2)];
+normalized = smooth_pos(:,1:2) - minima;
+normalized = smooth_pos(:,1:2)./maxima;
+
+normalized = bsxfun( @rdivide, normalized, 
+%% CALCULATE DISTANCE BETWEEN POOSITIONAL TIMEPOINTS
+distance(:,2) = sqrt((positions(:,2)-reference(1)).^2+(positions(:,3)-reference(2)).^2);
+
+%% CALCULATE VELOCITY
+DX = Diff(X,'smooth',smooth); % Get difference between coordinates along each dimension
+
+% Quad equation to find distance traveled between the differences between
+% each coordinate pair
+Y = DX(:,2:3).*DX(:,2:3);   % Square distance
+N = sqrt(Y(:,1)+Y(:,2));    % Take square of their sum
+
+% Create vector containing instantaneous velocity at each timepoint
+velocity(:,1) = [X(:,1) N];
+
+% Add both OE timestamps and computer ms timervalues
+velocity = smooth_pos(:,3:4);
 %% [2] LOW PASS FILTER TO REMOVE NOISE (Geisler et al., 2007)
     %Low-pass filter to determine kinematic signals @ 0.25 Hz (Chrobak et al., 2014)
         % Filtering out non-coherent, higher frequency signals
@@ -78,4 +103,3 @@ n=4; %filter order, integral
 fcutoff=0.25; % Set threshold
 [b,a]=butter(n,fcutoff/(Fs/2)); % Butterworth auto lowpass filter
 POS_filter(:,1:2) = filtfilt(b,a,POS(:,1:2)); %filter positional data across rows, since 2Xn transpose so timepoints across rows
-
