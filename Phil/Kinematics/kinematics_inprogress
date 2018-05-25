@@ -76,7 +76,6 @@ minima = [min(smooth_pos(:, 1) min(smooth_pos(:, 2)];
 normalized = smooth_pos(:,1:2) - minima;
 normalized = smooth_pos(:,1:2)./maxima;
 
-normalized = bsxfun( @rdivide, normalized, 
 %% CALCULATE DISTANCE BETWEEN POOSITIONAL TIMEPOINTS
 distance(:,2) = sqrt((positions(:,2)-reference(1)).^2+(positions(:,3)-reference(2)).^2);
 
