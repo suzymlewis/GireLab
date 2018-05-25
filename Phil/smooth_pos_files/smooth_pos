@@ -2,12 +2,11 @@ function [smooth_pos stalled outside] = smooth_pos(xlsx_behavior, messfilename)
 
 %%%%%%% POSITIONAL SMOOTHING %%%%%%%%%%%%%%%%%%
    
-	% THIS FUNCTION 
-        % [1] INTERPOLATES POSITIONAL DATA USING CUBIC SPLINE
+	% THIS FUNCTION INTERPOLATES POSITIONAL DATA USING CUBIC SPLINE
             % X/Y Coordinates from a tracked LED on the rat's head as it
             % navigates an elevated plus maze during navigational based
             % decision making task
-        % [2] BUTTERWORTH LOW PASS FILTERS TO REMOVE NON-PHYSIOLOGICAL RELEVANT MOTION
+        
     
     % INPUT 
         % xlsx_behavior = .xlxs behavioral file
@@ -207,14 +206,3 @@ smooth_pos = interp1(POS(:,1), POS(:,2:3), timestamp_mat(start_ts:end_ts,2), 'sp
 % ADD OE TIMEPOINTS TO THE MATRIX
 smooth_pos(:,3)=  timestamp_mat(start_ts:end_ts,1); % OE timestamps
 smooth_pos(:,4) = timestamp_mat(start_ts:end_ts,2); % Paired computer timestamps
-
-%% [2] LOW PASS FILTER TO REMOVE NOISE (Geisler et al., 2007)
-    %Low-pass filter to determine kinematic signals @ 0.25 Hz (Chrobak et al., 2014)
-        % Filtering out non-coherent, higher frequency signals
-            % Removes articles like head-movement
-        % Enhances ability to observe correlations between theta and the relevant biomechanical signals
-Fs=30000; %sampling rate
-n=4; %filter order, integral
-fcutoff=0.25; % Set threshold
-[b,a]=butter(n,fcutoff/(Fs/2)); % Butterworth auto lowpass filter
-POS_filter(:,1:2) = filtfilt(b,a,POS(:,1:2)); %filter positional data across rows, since 2Xn transpose so timepoints across rows
