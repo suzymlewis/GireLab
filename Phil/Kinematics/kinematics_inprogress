@@ -71,8 +71,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%           Calc Acceleration
 
 %% NORMALIZE COORDINATES
-maxima = [max(smooth_pos(:, 1) max(smooth_pos(:, 2)];
-normalized = smooth_pos(:,1:2)./maxima;
+maxima = [max(smooth_pos(:, 1)) max(smooth_pos(:, 2))];
+minima = [min(smooth_pos(:, 1)) min(smooth_pos(:, 2))];
+normalized = (smooth_pos(:,1:2)- minima)./(maxima-minima); % Subtract minimum from each dimensions then divide by new maximum
 
 %% CALCULATE DISTANCE BETWEEN POOSITIONAL TIMEPOINTS
 distance(:,2) = sqrt((positions(:,2)-reference(1)).^2+(positions(:,3)-reference(2)).^2);
