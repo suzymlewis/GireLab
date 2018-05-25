@@ -205,8 +205,8 @@ end
 smooth_pos = interp1(POS(:,1), POS(:,2:3), timestamp_mat(start_ts:end_ts,2), 'spline');
 
 % ADD OE TIMEPOINTS TO THE MATRIX
-smooth_pos(:,3)=  timestamp_mat(start_ts:end_ts,1);
-smooth_pos(:,4) = timestamp_mat(start_ts:end_ts,2);
+smooth_pos(:,3)=  timestamp_mat(start_ts:end_ts,1); % OE timestamps
+smooth_pos(:,4) = timestamp_mat(start_ts:end_ts,2); % Paired computer timestamps
 
 %% [2] LOW PASS FILTER TO REMOVE NOISE (Geisler et al., 2007)
     %Low-pass filter to determine kinematic signals @ 0.25 Hz (Chrobak et al., 2014)
