@@ -1,0 +1,81 @@
+function [velocity acceleration] = kinematics(smooth_pos, smooth)
+% Speed was calculated by taking the finite difference between successive
+% tracking (position) samples followed by a low-pass filter (cutoff?=?0.25
+% Hz) to minimize head movements and other movement related artifact
+% The speed vector was then calculated based on the displacement between each time point,
+% consistent with previous studies (Geisler et al., 2007).
+% The kinematic signals (e.g. speed, acceleration, deceleration) are primarily low-pass in nature such that the coherence between theta amplitude and the unfiltered biomechanical signals is maximal at frequencies less than 0.5 Hz
+    % So low-pass filter (0.25 Hz) the kinematic signals in order to remove uncertainty by filtering out non-coherent, higher frequency signals in order to enhance the ability to observe correlations between theta and the relevant biomechanical signals 
+% ACCCELERATION: Further, acceleration was calculated by taking the second-order finite difference with regards to position followed by the same low-pass filter applied to the speed signal 
+    % http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0097987#pone.0097987.s001
+% [2] BUTTERWORTH LOW PASS FILTERS TO REMOVE NON-PHYSIOLOGICAL RELEVANT MOTION
+%%%%%%
+    % INPUT
+    
+    % 'smooth_pos'
+        % output from smooth_pos function
+    % 'smooth' (default = no smoothing)
+        % Optional standard deviation for Gaussian kernel used for differentiating
+            % Measured in number of samples
+
+    % OUTPUT
+        % 'velocity'
+            % Single vector representing instantaneous velocity of animal across the trial sampled at 1250 Hz
+        % 'acceleration'
+            % Single vector representing instantaneous acceleration of animal across the trial sampled at 1250 Hz
+    
+    
+    
+
+%    Speed calculation—The center of mass of the coordinates of the red and green LEDs on
+% the rat’s head were computed offline. This represented the x and y position of the rat at each
+% point in time. This position data was low pass filtered to remove noise (Geisler et al., 2007).
+% The speed vector was then calculated based on the displacement between each time point,
+% consistent with previous studies (Geisler et al., 2007).
+    %https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3366345/pdf/nihms379873.pdf
+    
+% For making figure between acceleration and theta amp
+% http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0097987#pone.0097987.s001
+
+%%%%%%%%%%%% LOAD DATA NECESSARY TO TEST FUNCTIONS
+[messfilename,fn]= uigetfile();
+cd(fn)
+be = uigetfile();
+ xlsx_behavior = xlsread(be);
+
+[smooth_pos stalled outside] = smooth_pos(xlsx_behavior, messfilename);
+ %%%%%%%%%%%%
+
+if nargin < 1,
+	error('Incorrect number of parameters (type ''help <a href="matlab:help LinearVelocity">LinearVelocity</a>'' for details).');
+end
+if nargin >= 2,
+	if ~isdscalar(smooth,'>=0'),
+		error('Incorrect smoothing stdev (type ''help <a href="matlab:help LinearVelocity">LinearVelocity</a>'' for details).');
+	end
+else
+	smooth = 0;
+end
+%%%% THINGS THAT NEED TO BE CODED FOR THIS FUNCTION %%%%
+%%%%%%%%%%%%%%%%%%%%%  Normalize coordinates
+%%%%%%%%%%%%%%%%%%%%%    Convert to cm
+%%%%%%%%%%%%%%%%%%%%%     Extract position between x,y coordinates
+%%%%%%%%%%%%%%%%%%%%%       Low Pass Fitler
+%%%%%%%%%%%%%%%%%%%%%         Calc Velocity
+%%%%%%%%%%%%%%%%%%%%%           Calc Acceleration
+
+DX = Diff(X,'smooth',smooth);
+Y = DX(:,2:3).*DX(:,2:3);
+N = sqrt(Y(:,1)+Y(:,2));
+V = [X(:,1) N];
+%% [2] LOW PASS FILTER TO REMOVE NOISE (Geisler et al., 2007)
+    %Low-pass filter to determine kinematic signals @ 0.25 Hz (Chrobak et al., 2014)
+        % Filtering out non-coherent, higher frequency signals
+            % Removes articles like head-movement
+        % Enhances ability to observe correlations between theta and the relevant biomechanical signals
+Fs=30000; %sampling rate
+n=4; %filter order, integral
+fcutoff=0.25; % Set threshold
+[b,a]=butter(n,fcutoff/(Fs/2)); % Butterworth auto lowpass filter
+POS_filter(:,1:2) = filtfilt(b,a,POS(:,1:2)); %filter positional data across rows, since 2Xn transpose so timepoints across rows
+
