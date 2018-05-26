@@ -49,7 +49,7 @@ be = uigetfile();
 
 [smooth_pos stalled outside] = smooth_pos(xlsx_behavior, messfilename);
 
-%% THINGS THAT STILL NEED TO BE CODED FOR THIS FUNCTION %%%%
+%% THINGS THAT STILL NEED TO BE CODED FOR THIS FUNCTION
 %%%%%%%%%%%%%%%%%%%%%    Convert to cm
         %%%%%%%%%%%%%%%%%%%%%    To do this need to find good way to convert tracking pts to maze dimensions without error
 %%%%%%%%%%%%%%%%%%%%%       Low Pass Fitler
