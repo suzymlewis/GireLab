@@ -49,12 +49,11 @@ be = uigetfile();
 
 [smooth_pos stalled outside] = smooth_pos(xlsx_behavior, messfilename);
 
-%% THINGS THAT NEED TO BE CODED FOR THIS FUNCTION %%%%
-%%%%%%%%%%%%%%%%%%%%%  Normalize coordinates
+%% THINGS THAT STILL NEED TO BE CODED FOR THIS FUNCTION %%%%
 %%%%%%%%%%%%%%%%%%%%%    Convert to cm
-%%%%%%%%%%%%%%%%%%%%%     Extract distance between x,y coordinates
+        %%%%%%%%%%%%%%%%%%%%%    To do this need to find good way to convert tracking pts to maze dimensions without error
 %%%%%%%%%%%%%%%%%%%%%       Low Pass Fitler
-%%%%%%%%%%%%%%%%%%%%%         Calc Velocity
+        %%%%%%%%%%%%%%%%%%%%%       To do this need to interp even sampled timepoints and get exact sampling freq to create butterworth filter
 %%%%%%%%%%%%%%%%%%%%%           Calc Acceleration
 
 %% NORMALIZE COORDINATES
