@@ -1,0 +1,46 @@
+%% THINGS STILL TO DO
+%%%%%%%%%%%%%%% USE PCA WEIGHTS TO MAKE DERIV CROSS PLOT
+%%%%%%%%%%%%%%% GRAB RAW CA DATA AND USE CNMF TO GET ROI MASKS ONLY
+    %%%%%%%%%%%%%%% USE DELTA F FUNCTION ON RAW DATA
+        %%%%%%%%%%%%%%% MAKE DERIV CROSS PLOT
+%%%%%%%%%%%%%%% LOOK AT THE STFT TO SEE IF DOM FREQ
+    %%%%%%%%%%%%%%% MAKE CROSS PLOT OF GLOM AROUND THEIR DOM FREQ
+%%%%%%%%%%%%%%% LOOK AT ARTICLE AND SEE EXACTLY HOW C_OR IS BEING CALCULATED
+    %%%%%%%%%%%%%%% EMAIL DAD UPDATED XCEL DATA
+    
+%% GRAB RAW CA DATA AND USE CNMF TO GET ROI MASKS ONLY
+%% IMPORT GLOM DATA
+
+% Import glomerular data file
+[fg, fdg] = uigetfile('.mat', 'CHOOSE GLOMULAR DATA - .mat');
+cd(fdg);
+g_data = load(fg);
+
+trials = g_data.trials;
+ODOR_ON = g_data.ODOR_ON; % Index for relevant analysis time of video 
+    % Keeps baseline 10 seconds before odor presentation    
+    % Dumps a few seconds at tail end when no odor present
+        % This ensures all trials have the same length
+A_or = g_data.A_or; % Spatial Matrix from CNMF segmentation
+session_length = g_data.y; % Number of trials to be analyzed over session
+    % This number can vary if trials need to be dropped or are accidently
+    % not recorded
+frame_trial = g_data.tr; % What trial each frame is from
+Y = g_data.Y; % Grab indices for ROI masks for each glomeruli
+    % Y is M x N x Frames concatenated across all trials
+
+%% USE ROI TO EXTRACT RAW CA DATA FROM COMPRESSED RECORDING
+
+% Import compressed recording
+[fc, fdc] = uigetfile('.mat', 'CHOOSE GLOMULAR DATA - .mat');
+cd(fdc);
+comp = load(fc);
+
+% Extract relevant variable
+Y_ca = comp.clc; % Downsampled raw data using median filter for neighboring pixels
+Y_trialframe = comp.tr1a; % Vector containing trial assignment for each frame
+
+% Clear compressed file to free memory
+clear comp
+
+%%
