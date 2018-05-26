@@ -1,14 +1,11 @@
 function [velocity acceleration] = kinematics(smooth_pos, smooth)
-% Speed was calculated by taking the finite difference between successive
-% tracking (position) samples followed by a low-pass filter (cutoff?=?0.25
-% Hz) to minimize head movements and other movement related artifact
-% The speed vector was then calculated based on the displacement between each time point,
-% consistent with previous studies (Geisler et al., 2007).
+% The speed vector was then calculated based on the displacement between each time point
+    % Consistent with previous studies (Geisler et al., 2007).
 % The kinematic signals (e.g. speed, acceleration, deceleration) are primarily low-pass in nature such that the coherence between theta amplitude and the unfiltered biomechanical signals is maximal at frequencies less than 0.5 Hz
     % So low-pass filter (0.25 Hz) the kinematic signals in order to remove uncertainty by filtering out non-coherent, higher frequency signals in order to enhance the ability to observe correlations between theta and the relevant biomechanical signals 
-% ACCCELERATION: Further, acceleration was calculated by taking the second-order finite difference with regards to position followed by the same low-pass filter applied to the speed signal 
+% Further, acceleration was calculated by taking the 2nd order finite difference with regards to position followed by the same low-pass filter applied to the speed signal 
     % http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0097987#pone.0097987.s001
-% [2] BUTTERWORTH LOW PASS FILTERS TO REMOVE NON-PHYSIOLOGICAL RELEVANT MOTION
+
 %%%%%%
     % INPUT
     
