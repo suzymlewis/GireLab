@@ -54,8 +54,8 @@ be = uigetfile();
 
 
 %% FIND TIME ELASPED BETWEEN POSITIONAL COORDINATE PAIRS
-vel_time_diff = diff(smooth_pos(:,4)); % Find difference in ms timervalue
-acc_time_diff = vel_time_diff(:,2:end); % For acceleration since 2nd order diff need to drop first entry of array so timepoints match kinematic measurements positionally
+vel_time_diff = diff(smooth_pos(2:end, 4)); % Find difference in ms timervalue
+acc_time_diff = vel_time_diff(:, 2:end); % For acceleration since 2nd order diff need to drop first entry of array so timepoints match kinematic measurements positionally
 
 %% NORMALIZE COORDINATES
 maxima = [max(smooth_pos(:, 1)) max(smooth_pos(:, 2))];
@@ -63,14 +63,15 @@ minima = [min(smooth_pos(:, 1)) min(smooth_pos(:, 2))];
 normalized = (smooth_pos(:,1:2)- minima)./(maxima-minima); % Subtract minimum from each dimensions then divide by new maximum
 
 %% CALCULATE VELOCITY 
+% First find distance between each pair of timepoints in each dimension
 DX = diff(normalized); % Get difference between coordinates along each dimension
 
-% Quadratic Equation to find distance traveled between each timepoint
-Sqr = DX(:,1:2).*DX(:,1:2);
-distance = sqrt(Sqr(:,1)+Sqr(:,2));
+%Quadratic Equation to find distance traveled between each timepoint
+Sqr = DX(:,1:2).*DX(:,1:2);   % Square distance
+distance = sqrt(Sqr(:,1)+Sqr(:,2));    % Take square of their sum
 
 % Find velocity via finite differentiation
-velocity = diff(distance)./vel_time_diff;
+velocity = (diff(distance))./vel_time_diff;
 
 % Add both OE timestamps and computer ms timervalues
 velocity(:,2:3) = smooth_pos(2:end, 3:4);
