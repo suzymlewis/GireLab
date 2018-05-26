@@ -48,19 +48,6 @@ be = uigetfile();
  xlsx_behavior = xlsread(be);
 
 [smooth_pos stalled outside] = smooth_pos(xlsx_behavior, messfilename);
- %%%%%%%%%%%%
-
- %% ESTABLIST IF VALID SMOOTHING VARIABLE FOR FUNCTION
-if nargin < 1,
-	error('Incorrect number of parameters (type ''help <a href="matlab:help LinearVelocity">LinearVelocity</a>'' for details).');
-end
-if nargin >= 2,
-	if ~isdscalar(smooth,'>=0'),
-		error('Incorrect smoothing stdev (type ''help <a href="matlab:help LinearVelocity">LinearVelocity</a>'' for details).');
-	end
-else
-	smooth = 0;
-end
 
 %% THINGS THAT NEED TO BE CODED FOR THIS FUNCTION %%%%
 %%%%%%%%%%%%%%%%%%%%%  Normalize coordinates
