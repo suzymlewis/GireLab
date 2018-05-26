@@ -79,7 +79,7 @@ velocity(:,2:3) = smooth_pos(2:end, 3:4);
 acceleration = diff(velocity(:,1));
 
 % Add both OE timestamps and computer ms timervalues
-velocity(:,2:3) = smooth_pos(2:end, 3:4);
+acceleration(:,2:3) = smooth_pos(2:end, 3:4);
 
 %% [2] LOW PASS FILTER TO REMOVE NOISE (Geisler et al., 2007)
     %Low-pass filter to determine kinematic signals @ 0.25 Hz (Chrobak et al., 2014)
