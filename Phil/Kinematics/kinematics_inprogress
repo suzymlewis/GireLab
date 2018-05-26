@@ -63,21 +63,15 @@ minima = [min(smooth_pos(:, 1)) min(smooth_pos(:, 2))];
 normalized = (smooth_pos(:,1:2)- minima)./(maxima-minima); % Subtract minimum from each dimensions then divide by new maximum
 
 %% CALCULATE DISTANCE BETWEEN POOSITIONAL TIMEPOINTS
-distance(:,2) = sqrt((positions(:,2)-reference(1)).^2+(positions(:,3)-reference(2)).^2);
+DX = diff(normalized); % Get difference between coordinates along each dimension
 
-%% CALCULATE VELOCITY
-DX = Diff(X,'smooth',smooth); % Get difference between coordinates along each dimension
-
-% Quad equation to find distance traveled between the differences between
-% each coordinate pair
-Y = DX(:,2:3).*DX(:,2:3);   % Square distance
-N = sqrt(Y(:,1)+Y(:,2));    % Take square of their sum
-
-% Create vector containing instantaneous velocity at each timepoint
-velocity(:,1) = [X(:,1) N];
+% Quadratic Equation to find distance traveled between each timepoint
+Sqr = DX(:,1:2).*DX(:,1:2);
+velocity = sqrt(Sqr(:,1)+Sqr(:,2));
 
 % Add both OE timestamps and computer ms timervalues
-velocity = smooth_pos(:,3:4);
+velocity(:,2:3) = smooth_pos(2:end, 3:4);
+
 %% [2] LOW PASS FILTER TO REMOVE NOISE (Geisler et al., 2007)
     %Low-pass filter to determine kinematic signals @ 0.25 Hz (Chrobak et al., 2014)
         % Filtering out non-coherent, higher frequency signals
