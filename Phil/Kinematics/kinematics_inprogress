@@ -42,7 +42,7 @@ function [velocity acceleration] = kinematics(smooth_pos, smooth)
 % http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0097987#pone.0097987.s001
 
 %%%%%%%%%%%% LOAD DATA NECESSARY TO TEST FUNCTIONS
-[messfilename,fn]= uigetfile();
+[messfilename,fn]= uigetfile()
 cd(fn)
 be = uigetfile();
  xlsx_behavior = xlsread(be);
@@ -50,23 +50,31 @@ be = uigetfile();
 [smooth_pos stalled outside] = smooth_pos(xlsx_behavior, messfilename);
 
 %% THINGS THAT STILL NEED TO BE CODED FOR THIS FUNCTION
+%%%%%%%%%%%%%%%%%%%%%  Need to find exact time between each pair of positional coordinates so velocity and acceleration diff() accurate
+        %%%%%%%%%%%%%%%%%%%%%  Once have this need to alter velocity and acceleration functions
 %%%%%%%%%%%%%%%%%%%%%    Convert to cm
         %%%%%%%%%%%%%%%%%%%%%    To do this need to find good way to convert tracking pts to maze dimensions without error
 %%%%%%%%%%%%%%%%%%%%%       Low Pass Fitler
         %%%%%%%%%%%%%%%%%%%%%       To do this need to interp even sampled timepoints and get exact sampling freq to create butterworth filter
-%%%%%%%%%%%%%%%%%%%%%           Calc Acceleration
+
 
 %% NORMALIZE COORDINATES
 maxima = [max(smooth_pos(:, 1)) max(smooth_pos(:, 2))];
 minima = [min(smooth_pos(:, 1)) min(smooth_pos(:, 2))];
 normalized = (smooth_pos(:,1:2)- minima)./(maxima-minima); % Subtract minimum from each dimensions then divide by new maximum
 
-%% CALCULATE DISTANCE BETWEEN POOSITIONAL TIMEPOINTS
+%% CALCULATE VELOCITY 
 DX = diff(normalized); % Get difference between coordinates along each dimension
 
 % Quadratic Equation to find distance traveled between each timepoint
 Sqr = DX(:,1:2).*DX(:,1:2);
 velocity = sqrt(Sqr(:,1)+Sqr(:,2));
+
+% Add both OE timestamps and computer ms timervalues
+velocity(:,2:3) = smooth_pos(2:end, 3:4);
+
+%% CALCULATE ACCELERATION
+acceleration = diff(velocity(:,1));
 
 % Add both OE timestamps and computer ms timervalues
 velocity(:,2:3) = smooth_pos(2:end, 3:4);
