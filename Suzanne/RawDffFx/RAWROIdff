@@ -1,0 +1,132 @@
+%% IMPORT GLOM DATA
+
+% Import glomerular data file
+[fg, fdg] = uigetfile('.mat', 'CHOOSE GLOMULAR DATA - .mat');
+cd(fdg);
+g_data = load(fg);
+
+trials = g_data.trials;
+ODOR_ON = g_data.ODOR_ON; % Index for relevant analysis time of video 
+    % Keeps baseline 10 seconds before odor presentation    
+    % Dumps a few seconds at tail end when no odor present
+        % This ensures all trials have the same length
+A_or = g_data.A_or; % Spatial Matrix from CNMF segmentation
+    % A_or is the set of glomeruli once merged and updated
+        % A is all originally identified glomerular ROIs before merging
+    % A_or;
+        % 18096 x N matrix
+            % N = number of glomeruli
+            % 18096 is the number of pixels in each 116 x 156 downsampled tiff image concatentated
+session_length = g_data.y; % Number of trials to be analyzed over session
+    % This number can vary if trials need to be dropped or are accidently
+    % not recorded
+frame_trial = g_data.tr; % What trial each frame is from
+Y = g_data.Y; % Grab indices for ROI masks for each glomeruli
+    % Y is M x N x Frames concatenated across all trials
+
+% Clear segmented file to free memory
+clear g_data
+
+%% IMPORT RAW CA DATA FROM COMPRESSED RECORDING
+
+% Import compressed recording
+[fc, fdc] = uigetfile('.mat', 'CHOOSE GLOMULAR DATA - .mat');
+cd(fdc);
+comp = load(fc);
+
+% Extract relevant variable
+Y_ca = comp.clc; % Downsampled raw data using median filter for neighboring pixels
+Y_ca = Y_ca (5:120, 5:160,:); % Drop areas of frame removed from motion correction to be consistent with segmented data
+Y_trialframe = comp.tr1a; % Vector containing trial assignment for each frame
+
+% Clear compressed file to free memory
+clear comp
+
+%% CREATE ROI MASKS WITH SCALED BOOLEAN MATRIX
+    % Seems that ROI mask has differential weighting for taking the average over the pixels. A few pixels are even shared between glomeruli 
+% Get full matrix from sparse double
+A = full(A_or);
+
+% Loop through A and create Boolean Matrix vector for each column where
+% ROI beloning to each glomerular are scaled by integer equal to glomerular
+% number
+Bool = zeros(size(A,1), size(A,2));
+Boolshare = zeros(size(A,1), 1); % 
+% Create vector indicateing which pixel share glomeruli
+share = zeros(size(A,1), 1); 
+for i = 1:size(A_or ,2) % LOOP GLOMERULI
+    temp = A_or(:,i);
+    tmp = find(temp~=0);
+    Bool(tmp,i) = i;
+    for ii = 1:length(tmp)
+        if Boolshare(tmp(ii)) == 0;
+           Boolshare(tmp(ii))=i;
+        else
+         share(tmp(ii)) = share(tmp(ii)) + 1; 
+         Boolshare(tmp(ii))=100;
+        end   
+    end
+end
+shared = find(share~=0); % Create single vector indicating pixel index that are shared across glomeruli(for concatenated frame with pixels as single column vector)
+    % Use this later to index row (pixel across time) to divy its raw ca
+    % amongst its constituent glomeruli
+shared_pixels=Bool(shared,:);
+share_glom = shared_pixels(find(shared_pixels~=0)); % Find glomeruli which share pixels
+
+%% USE BOOL MASK TO GRAB RAW CA MEAN TRACE FOR EACH GLOM
+
+% Reshape raw Ca so each frame is column vector like ROI mask
+rawca = reshape (Y_ca, [size(Bool,1) size(Y_ca, 3)]);
+
+% Get mean trace for each glomeruli across session from raw Ca
+for i = 1:size(A_or ,2) % LOOP GLOMERULI  
+    
+    % Grab pixels relevant to looping glomerular ROI
+    temp_roi = find(Bool(:,i)~=0); 
+    
+    % Check to make sure no shared pixels
+    if ismember(i, share_glom); % Loop if a looping glomeruli has shared pixel
+        ia = ismember(shared_pixels, i); % Find relevant rows the matrix containing pixels and the glomeruli that share them
+        temp_pix = find(sum(ia,2)~=0); % Find which row index for shared pixels relevant to current glomeruli
+        t = shared(temp_pix); % Index into shared to get pixel index for entire frame
+        indx = temp_roi(find(~ismember(temp_roi,t)));
+            % M x 1
+                % M is the row index for pixels pertinant to looping glomeruli
+                % Does not include shared pixels
+                % Grab trace for all pixels unique to looping glomeruli's ROI
+        temp_trace(i,:) = mean(rawca(indx,:),1)'; % Grab signal from all pixels in ROI
+    else
+        temp_trace(i,:) = mean(rawca(temp_roi,:),1)';
+    end
+      
+end
+clear indx t temp_pix ia temp_roi
+
+%% Get into C_or structure
+% Use Y_trialframe to index into temp_trace and get first 350 frames of
+% each trial
+ca_temp= [];
+for i = 1:size(A_or ,2) % LOOP GLOMERULI
+    for ii=1:max(trials)
+        temp = find(Y_trialframe==ii);
+        ca_temp = horzcat(ca_temp, temp_trace(i, temp(1:max(ODOR_ON))));
+    end
+     C_or_raw(i,:) = ca_temp;
+     ca_temp = [];
+end
+clear ca_temp temp
+
+%% LABEL TRIAL TYPES USING LOGGED TRIAL STRUCTURE
+
+% HIGH-LOW        
+turb_label(1:10) = 1;   
+turb_label([11:15 21:25 31:35]) = 2;    
+turb_label([16:20 26:30 36:40]) = 0;
+
+% % LOW-HIGH
+% turb_label(1:10) = 1;
+% turb_label([11:15 21:25 31:35]) = 0;
+% turb_label([16:20 26:30 36:40]) = 2;
+
+%%  GET DFF GLOM CALCIUM
+[tC tC_od tC_trials tC_trials_od]=DFFcal(C_or_raw, trials ,turb_label);
