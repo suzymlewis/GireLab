@@ -1,0 +1,315 @@
+%% THINGS TO DO
+%%%%%%%%%%%%%%%%%%% Figure out why dff going flat
+%%%%%%%%%%%%%%% LOOK AT THE STFT TO SEE IF DOM FREQ
+    %%%%%%%%%%%%%%% MAKE CROSS PLOT OF GLOM AROUND THEIR DOM FREQ
+%%%%%%%%%%%%%%% LOOK AT ARTICLE AND SEE EXACTLY HOW C_OR IS BEING CALCULATED
+    %%%%%%%%%%%%%%% EMAIL DAD UPDATED XCEL DATA for time series regression
+% Use tC with C_or_raw from RAWROIdff script
+
+%% DERIV CROSS PLOT
+
+%% LOAD ETH DATA
+
+mxf = 375;
+
+[fe, fde] = uigetfile('.dat', 'CHOOSE ETH DATA - .dat');
+cd(fde);
+fna = char(fe);
+fileID = fopen(fna);
+data = fread(fileID,'int32','ieee-be');
+
+n_ten = find(data==-10);
+TR = data(n_ten+1);
+TS = data(n_ten+2);
+FR = data(n_ten+3);
+ETH = data(n_ten+4);
+
+un = unique(TR);
+FR = FR-FR(1)+1;
+clear fr eth_fr ts_fr dst snf unf
+
+for p = 1:length(un);
+    frr = FR(TR==un(p));
+    frr = frr-frr(1)+1;
+    eth = ETH(TR==un(p));
+    unf = unique(frr);
+    ts = TS(TR==un(p));
+    
+    for t = 1:length(unf);%min([mxf+25 max(unf)]);%length(unf);
+        fr(p,t) = t;%mean(frr(frr==unf(t)));
+        data2(p,t) = mean(eth(frr==unf(t)));
+        ts_fr(p,t) = mean(ts(frr==unf(t)));
+    end
+    
+    data2a = data2(p,min(find(ts_fr(p,:)>1)):end);
+    data2b(p,:) = data2(p,1:mxf);
+end
+
+clear data2 ts_fr
+data2 = data2b(trials,:);
+
+
+data2 = data2-repmat(mean(data2(:,1:100),2),1,size(data2,2));
+eth_data = data2(trials,ODOR_ON);
+PL_MEAN = eth_data';%reshape(eth_data',size(eth_data,1).*size(eth_data,2),1)';
+    % PL_MEAN
+        %M(# frames) x N(# trials)
+        % Raw eth over the relevant trial frame (columns) for each trial (rows)
+
+%% LOOK AT CORRELATION BETWEEN EACH GLOM TO FIND AVG DELAY FOR EACH GLOM WITH MAX X-CORR
+% Correlation to plume analysis
+
+thr = 1; % Set threshold for std of derivation of normalized, mean centered trial data from glomeruli
+
+tm_rn = 20; %range in frames before and after
+
+%%%%%%%%%%%%%%%%%%%% FIX THIS SO VARIABLE/ VAR ASS NOT VAR/INT ASS   
+% Set max frame from which to index
+    % Use final frame analyzing in cross corr
+mx = size(PL_MEAN,1); 
+
+%%%%%%%%%%%%%%%%%%%%%%%%% REAL THING NEED TO DO IS GET A PL_MEAN; I HAVE
+%%%%%%%%%%%%%%%%%%%%%%%%% ETT BUT THAT IS SAMPLED AT 10X RATE SO HAVE 3500
+%%%%%%%%%%%%%%%%%%%%%%%%% INSTEAD OF 350 FRAMES
+%%%%%%%%%%%%%%%%%%%%%% Later make this interp based on timestamp, for now
+%%%%%%%%%%%%%%%%%%%%%% just average that is what david did
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%% DAVID REMOVES BASELINE OF ETHANOL DATA
+%%%%%%%%%%%%%%%%% CONSIDER DELTA F/F ethanol as well??????????????????????
+
+
+% PL_MEAN is a 350 x 40 strucutre
+    
+
+xc = 0;
+clear AVG gl_id AVG_gl crc tr_id
+
+TR_MEAN = tC_trials;
+TR_MEAN1= TR_MEAN;
+% TR_MEAN is just C_trial(:,:,:) at this point
+    % Note =  C_trial = calcium 14x350x40
+   
+for y = 1:size(TR_MEAN1,1); % LOOP GLOMERULI
+    crr = squeeze(TR_MEAN1(y,:,:)); % % JUST RESHAPED CALCIUM
+        % 350 x 40 for looping glom
+        % Here please note TR_MEAN1==TR_MEAN 
+        
+        % Create CRR which is glomerular matrix for the current looping glomeruli    
+    for y1 = 1:size(crr,2); % LOOP TRIAL WITHIN GLOMERULI
+        clear f2 crr1 zs df1 f1
+        zs = squeeze(crr(:,y1));
+            % 350 x 1 signal for looping trial within looping glomeruli
+        
+        %%%%%%% DONT NEED TO CALC ZS BECAUSE ALREADY USING DELTA F
+        %%%%%%% Extract one trial delta f for looping glom
+        % zs= crr1-mean(crr1(:,:));% Subtract the mean
+        
+%         % CALCULATE USABLE SIGNAL BY TAKING DERIV OF NORMALIZED, MEAN-CENTERED DATA
+%             % NOT USING DELTA F/F
+%         zs = crr1-mean(crr1(:,:)); % Subtract the mean
+%         zs = zs./std(zs(:)); % Divide by the std to normalize
+%         zs = diff(zs); % Take deriv of signal
+        
+        % FIND SIGNIFICANT CHANGES
+        f1 = find(zs>thr); % Find where exceed 1 std change from last sample
+            % m x 1 where m=number of sig events
+        df1 = diff(f1); % Take derivative of this significant signal
+        f2 = f1(df1>5); % Make sure significant points are distinct responses to temporal seperated dynamics
+            % Since sampled at 30Hz
+                % Events within 5 points are within a 1/6 second window
+                    % So this changes 6Hz or faster
+                    % Good because changes in calcium dynamics are on the range of 2Hz
+            % Only use points where the change between significant points is greater than 5
+         
+        % CROSS CORR OF DIFF RAW ETH AND DIFF RAW CA
+        %%%%%%%%%%%%%%%%%%%% As his is right now, one is across trials and
+        %%%%%%%%%%%%%%%%%%%% the other across timepoints within a trial
+        crc(y,:,y1) = xcorr(diff(PL_MEAN(:,y1)),diff(squeeze(TR_MEAN(y,:,y1))),'coeff');
+            % diff(PL_MEAN(:, y1)) = eth for looping trial 'y1'
+                % 349 x 1
+                % diff(squeeze(TR_MEAN(y,:,y1)))
+                % deriv ca signal for trial
+                % 1 x 349
+            % crc(y,:,y1) = cross correlation of eth and ca signals for trial
+                % 1 x 697
+                
+        for u = 1:length(f2); % LOOP SIG EVENTS
+            % f2 = entries of f1 with temporal seperate signifcant events
+            % f1 = indices of za for sig events
+                
+            
+            if f2(u) > tm_rn & f2(u) < mx-tm_rn; % Make sure sig event not window artifact of cross correlation
+                % Make sure sig event not in first or last tm_rn (# frames suspected in range for artifact)
+                % Drops any sig events in first and last 20 frames because likely a window artifact of xcorr
+                
+                xc = xc+1; % Index for significant event
+            
+                %%%%%%%%%%%%%%%%%%%%%%%%  SOME SORT OF DIMENSION MISMATCH BETWEEN THIS CODE AND DAVIDS   
+%             Error using coder.internal.assert (line 17)
+% When B is a vector, A must be a vector.
+% 
+% Error in xcorr (line 108)
+%     coder.internal.assert(iscolumn(x), ...
+ 
+                % STORE ETH DERIV CORRESPONDING TO SIG EVENT INTO 'AVG' VECTOR
+            AVG(xc,:) = squeeze(diff(PL_MEAN(f2(u)-tm_rn:f2(u)+tm_rn,y1)))'; % Deriv eth of current sig event
+                % Take 20 frames pre and post sign event
+                % f2 is index of sig events
+                % PL_MEAN is raw eth data
+                % 'y1' just indexing current looping trial
+                % AVG = m x 40 structure
+                    % m = number of sig events not part of window artifact
+                    
+            % STORE DERIV OF MEAN CENTERED, NORMALIZED CA
+            AVG_gl(xc,:) = zs(f2(u)-tm_rn:f2(u)+tm_rn);
+                % Take 20 frames pre and post sign event    
+                % zs = ca deriv, normalized and mean centered
+                % m x 41
+            % CREATE VECTOR INDICATING GLOMERULI AND TRIAL TAGS
+            gl_id(xc) = y; % Tag glomeruli sig event comes from
+            tr_id(xc) = y1; % Tag trial sig event comes from
+                % Both vectors of length == number sig events
+            end
+            
+        end
+    
+    end
+    
+end
+
+%% PLOT MEAN RESPONSE OF GLOMERULI
+
+% Avg DFF of each glomeruli across trials
+resp_mean = mean(tC_trials, 3); 
+    % So resp_mean is M x N
+        % M = # glomeruli
+        % N = # Frames within each trial
+
+% Plot each glomeruli average response across trial 
+figure, imagesc(resp_mean,[-1 1]);    
+
+% Find max DFF value for each glomeruli across mean trial response
+resp_str = max(resp_mean,[],2);
+    % M x 1 column vector containing the max DFF response of each glomeruli(M)
+
+% Sort the glomeruli by max of mean response strength   
+[rs rs1] = sort(resp_str);
+    % rs is the glomeruli sorted by max frame of mean activity
+        % From least to most active
+    % rs1 is the indices of these glomeruli in the presorted array
+
+% Sort avg DFF response of each glomeruli across trials
+    % From least to most active
+resp_mean1 = resp_mean(rs1,:);
+    % M x N:
+        % M is glomeruli
+        % N is number of frames within a trial
+
+% Look at average glomerular response
+    % NOTE: ONSET, OFFSET, and DYNAMIC RESPONSES
+% Top is the average response across trials for each glomeruli sort
+    % From least to most active
+figure, subplot(2,1,1), 
+imagesc(resp_mean1,[-0.5 1])
+
+% Find standardized x-corr response across trials for each glomeruli
+corr_resp = mean(crc(rs1,:,:),3)./std(crc(rs1,:,:),[],3);
+    % Index using rs1 to sort by glomerular responsivity (less to most)
+    % corr_resp = 14 x 697
+corr_resp1 = corr_resp;
+
+% Remove low level correlations
+    % Remove any low value standardized x-corr
+        % Set values less than 1 stdev = 0
+corr_resp(abs(corr_resp)<1) = 0;
+
+% Take the maximum cross correlation response of each glomeruli
+cr1 = max(corr_resp,[],2);
+    % cr1 = 14 x 1
+    
+% Get size of 1/2 x-corr vector and round to nearest whole int
+sz = round(size(corr_resp,2)/2);
+
+% For the Bottom half of Figure
+% Plot the mean, large x-corr response of each glomeruli
+subplot(2,1,2),
+imagesc(corr_resp(:, sz-40:sz+40)); %imagesc(corr_resp(:,:))
+
+%% GET MEAN DELAY FOR EACH GLOMERULI
+
+% Find mean delay response for each glomeruli
+    % Find max of x-corr mean for each glomeruli across trials
+    delay=[];
+for i = 1:size(corr_resp, 1) % LOOP GLOMERULI
+    if sum(corr_resp(i, sz-40:sz+40))==0 % If not large x-corr value then delay = 0
+        delay(i)=0;
+    else
+        temp = corr_resp(i, sz-40:sz+40);
+        delay(i)=find(temp == max(temp)); 
+    end
+    clear temp
+end
+
+% Delay in frames from x-corr
+    % Delay measured in frames
+        % Divide delay by sampling rate in Hz to get seconds delayed
+delay=delay';
+delayed = find(delay~=0)
+delay(delayed)=abs(delay(delayed)-40);
+
+%% Plot data from correlation and response analysis
+
+corr_resp = mean(crc(rs1,:,:),3)./std(crc(rs1,:,:),[],3);
+corr_resp1 = corr_resp;
+
+corr_resp(abs(corr_resp)<1) = 0;
+cr1 = max(corr_resp,[],2);
+
+sz = round(size(corr_resp,2)./2);
+subplot(2,1,2),
+imagesc(corr_resp(:,sz-40:sz+40));
+
+figure, subplot(2,1,2), imagesc(corr_resp1(cr1>0,sz-40:sz+40))
+subplot(2,1,1), imagesc(resp_mean1(cr1>0,:))
+
+LG = ([sz-40:sz+40]-mean([sz-40:sz+40]))./20;
+
+figure, plot(LG,corr_resp1(cr1>0,sz-40:sz+40)','linewidth',2)
+hold on
+plot([0 0],[-2 2],'k--')
+
+%% PLOT DFF VS ETH DERIV FOR EACH TIMEPOINT WITHIN GLOM AND FIT CURVE
+
+
+for i = 1:size(C_or_raw,1) % LOOP GLOM
+    y = squeeze(TR_MEAN(i,:,:));
+    
+    % If correlated signal delay ethanol sig
+        % Match mean max corr between two signals
+    if length(delay(i))>0
+        y(1:delay(i),:)=[];
+        x = PL_MEAN;
+        x(((length(x)+1)-delay(i)):length(x),:)=[];
+        x = reshape(x.',1,[])';
+        sig = 'sig xcorr'
+        
+    else
+        x = reshape(PL_MEAN.',1,[])';
+        sig = 'not sig xcorr'
+    end
+    yy =  reshape(y.',1,[]);
+    yy= yy';
+
+    fitobject{i} = fit(x,yy,'poly2');
+    figure('Name',sprintf('Response curves of glomeruli %d to eth deriv, %s', i, sig) ,'NumberTitle','off')
+    plot(fitobject{i},x,yy);
+    clear x y yy sig
+end
+
+figure('Name','Response curves of glomeruli to eth deriv','NumberTitle','off')
+for i = 1:length(fitobject)
+    plot(fitobject{i})
+    legend('off')
+    hold on
+end
