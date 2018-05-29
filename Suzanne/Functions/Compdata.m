@@ -2,9 +2,9 @@ function [raw trials frame_trial] = Compdata()
 
 %%%%%%%%%%%%%%% LOADS RELEVANT VARIABLES FROM SEGMENTED DATA INTO WORKSPACE
     % OUTPUT
-        % raw: raw signal with most blank pixels corresponding to motion
+        % raw: raw signal with most blank pixels corresponding to motion correction boundary dropped
             % 116pixels x 156pixels x 450ts x 40trials
-        % correction boundary dropped
+        % trials: trial numbers included in data
         % frame_trial: indicates which trial each frame is from
             % Entire session in temporal matrix horizontally concatenated
 %%%%%%%%%%%%%%%
