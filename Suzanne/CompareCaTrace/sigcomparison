@@ -1,0 +1,247 @@
+
+%% IMPORT GLOM DATA SEGMENTED
+
+% Import glomerular data file
+[fg, fdg] = uigetfile('.mat', 'CHOOSE GLOMULAR DATA - .mat');
+cd(fdg);
+g_data = load(fg);
+
+trials = g_data.trials;
+ODOR_ON = g_data.ODOR_ON; % Index for relevant analysis time of video 
+    % Keeps baseline 10 seconds before odor presentation    
+    % Dumps a few seconds at tail end when no odor present
+        % This ensures all trials have the same length
+A_or = g_data.A_or; % Spatial Matrix from CNMF segmentation
+C_or_raw = g_data.C_or;
+C_or = g_data.C_or;
+C_df = g_data.C_df;
+    % A_or is the set of glomeruli once merged and updated
+        % A is all originally identified glomerular ROIs before merging
+    % A_or;
+        % 18096 x N matrix
+            % N = number of glomeruli
+            % 18096 is the number of pixels in each 116 x 156 downsampled tiff image concatentated
+session_length = g_data.y; % Number of trials to be analyzed over session
+    % This number can vary if trials need to be dropped or are accidently
+    % not recorded
+frame_trial = g_data.tr; % What trial each frame is from
+Y = g_data.Y; % Grab indices for ROI masks for each glomeruli
+    % Y is M x N x Frames concatenated across all trials
+
+%% GRAB COORDINATES FOR ROI AND SURRONDING IMMEDIATE REGION FOR RAW DATA
+% Glom1 = imagesc(A_orrr(1:13,90:100,1))
+A_or_full = full(A_or);
+A = reshape(A_or_full(:,7), [116 156]);
+
+% A_or for glomeruli 7
+A_or_7 = A_or_full(:,7);
+
+% Spatial Mask for glomeruli number 7
+glom7 = A(27:41,101:115);
+figure, imagesc(glom7)
+
+% Movie Glom 7 for first 2 trials
+Glom7mov = Y(27:41,101:115,:);
+v = VideoWriter('Glom7.avi');
+open(v);
+figure, imagesc(squeeze(Glom7mov(:,:,1)),[min(Glom7mov(:)) max(Glom7mov(:))])
+for k = 1:700
+   imagesc(squeeze(Glom7mov(:,:,k)),[min(Glom7mov(:)) max(Glom7mov(:))])
+   frame = getframe(gcf);
+   writeVideo(v,frame);
+end
+close(v);
+
+%% IMPORT GLOM DATA COMPRESSED
+
+% Import compressed recording
+[fc, fdc] = uigetfile('.mat', 'CHOOSE GLOMULAR DATA - .mat');
+cd(fdc);
+comp = load(fc);
+
+% Extract relevant variable
+Y_ca = comp.clc; % Downsampled raw data using median filter for neighboring pixels
+Y_ca = Y_ca (5:120, 5:160,:); % Drop areas of frame removed from motion correction to be consistent with segmented data
+Y_trialframe = comp.tr1a; % Vector containing trial assignment for each frame
+
+for i = 1:length(trials)
+        k = find(Y_trialframe ==i);
+        temp = Y_ca(27:41,101:115,k);
+        sig_Y_ca(:,:,:,i) = temp(:,:,1:350);
+        clear temp
+end
+
+%% MAKE SURE NO PIXELS OVERLAP WITH ANOTHER GLOMERULI
+
+indx=0
+for i = 1:size(A_or, 1)
+    if sum(A_or(i,7))>1
+        overlap(indx)=i
+        indx=indx+1;
+    end
+end
+clear indx
+
+% For glomeruli 7 there are no overlapping pixels
+
+%% GET ALL TYPES SIGNAL
+% Get all types of signal from both CalIm and Compressed file
+    % Title extension dictionary:
+        % dff - indicates the local delta f function merav
+        % df - indicates constrained deconvolution from CNMF CalIm code
+        % nonlocaldf- inficates non-local f-std(f)/std(f) david wrote
+        % deriv -  literally deriv, diff();
+
+%%%%%%%%%%%%%%% GRAB SIGNAL FROM SEGMENTED
+
+% GET TEMPORAL MATRIX FROM CALIM
+sig_C_or = C_or(7,:);
+    % 1glom x 14000(350ts x 40trials horzcat)
+    
+% DIFF(C_or);    
+C_or_deriv = reshape(C_or(7,:), [350 40]);
+sig_C_or_deriv = diff(C_or_deriv, 1);
+    %349 ts x 40trials
+
+% GET LOCAL DELTA F FUNCTION (MERAV)
+% HIGH-LOW        
+turb_label(1:10) = 1;   
+turb_label([11:15 21:25 31:35]) = 2;    
+turb_label([16:20 26:30 36:40]) = 0;
+[tC tC_od tC_trials tC_trials_od]=DFFcal(C_or, trials ,turb_label);
+sig_C_or_dff = tC_trials(7,:,:);
+    % 1glomtrace x 350ts x 40trials
+sig_C_or_dff = reshape(sig_C_or_dff, [350 40]);
+    % 350ts x 40trials
+
+% Get David DFF nonlocal
+C_trial = reshape(C_or,size(C_or,1),size(C_or,2)/length(trials),length(trials));
+% C_trial = reshape(C_or,size(C_or,1),size(C_or,2)/length(trials),length(trials));
+TR_MEAN = C_trial(:,:,:);
+crr = squeeze(TR_MEAN(7,:,:)); % JUST RESHAPED CALCIUM
+for y1 = 1:size(crr,2);% LOOP TRIALS
+    clear crr1 zs
+    crr1 = squeeze(crr(:,y1)); % Grab data for a single trial
+    % Data for frames 1:350 within a single trial within a single glomer415li
+    
+    % CALCULATE USABLE SIGNAL BY TAKING DERIV OF NORMALIZED, MEAN-CENTERED DATA
+    % NOT USING DELTA F/F
+    zs = crr1-mean(crr1(:,:)); % Subtract the mean
+    zs = zs./std(zs(:)); % Divide by the std to normalize
+    zs = diff(zs); % Take deriv of signal
+    % zs now 349 x 1 for ca der of looping trial
+    
+    sig_C_or_nonlocaldf(:,y1) = zs;
+        % 349 x 40 because deriv
+end
+
+% GET CD SPIKING FROM CALIM
+full_C_df = full(C_df);
+sig_C_df = full_C_df(7,:);
+     % 1 x 14000
+     
+%%%%%%%%%%%% GRAB SIGNAL FROM COMPRESSED RECORDING
+
+% Within 15 x 15 frame for glomeruli 7 tif images, find indices with
+% glomerular signal
+indx7 = find(glom7~=0);
+
+% Concatenate relevant pixel in glom 7 to extract signal
+sig_Y= reshape(sig_Y_ca, [225 350 40]);
+    % 225pixels x 350ts x 40trials
+    % Only includes non overlapping pixels
+
+% RAW SIGNAL W/ EQUALLY WEIGHT MEAN ACROSS PIXELS
+sig_compressed = squeeze(mean(sig_Y(indx7,:,:),1));
+    % 350ts x 40trials
+    % Mean of pixels with weight~=0 in A_or 
+    
+% DERIV RAW SIGNAL WITHIN RIO
+sig_compressed_deriv = diff(sig_compressed);
+     % 349ts x 40trials
+
+% GET LOCAL DELTA F FUNCTION (MERAV)
+Comp_or = reshape(sig_compressed, [1 14000]);
+    % 1glom x 14000ts structure to fit into Merav DFF function
+[tComp tComp_od tComp_trials tComp_trials_od]=DFFcal(Comp_or, trials ,turb_label);
+sig_compressed_dff = squeeze(tComp_trials);
+    %350ts x 40trials
+
+% GET NON LOCAL DELTA F FUNCTION (MERAV)
+comprr = sig_compressed; % JUST RAW CA
+for y1 = 1:size(comprr,2);% LOOP TRIALS
+    clear comprr1 zs
+    comprr1 = squeeze(comprr(:,y1)); % Grab data for a single trial
+    % Data for frames 1:350 within a single trial within a single glomer415li
+    
+    % CALCULATE USABLE SIGNAL BY TAKING DERIV OF NORMALIZED, MEAN-CENTERED DATA
+    % NOT USING DELTA F/F
+    zs = comprr1-mean(comprr1(:,:)); % Subtract the mean
+    zs = zs./std(zs(:)); % Divide by the std to normalize
+    zs = diff(zs); % Take deriv of signal
+    % zs now 349 x 1 for ca der of looping trial
+    
+    sig_compressed_nonlocaldf(:,y1) = zs;
+        % 349 x 40 because deriv
+end
+%% IMAGESC COMPARISON
+
+% TEMPORAL MATRIX FROM CALIM
+figure
+sig_C_or_plot =  imagesc(reshape(sig_C_or, [350 40])')
+title('Temporal Matrix Signal CalIm')
+saveas(sig_C_or_plot, 'sig_C_or_plot.jpg')
+
+% DERIV OF TEMPORAL MATRIX FROM CALIM
+figure
+sig_C_or_deriv_plot =  imagesc(sig_C_or_deriv')
+title('DIFF(Temporal Matrix Signal CalIm)')
+saveas(sig_C_or_deriv_plot, 'sig_C_or_deriv_plot.jpg')
+
+% MERAV DFF OF TEMPORAL MATRIX
+figure
+sig_C_or_dff_plot =  imagesc(sig_C_or_dff')
+title('Local DF Temporal Matrix Signal CalIm')
+saveas(sig_C_or_dff_plot, 'sig_C_or_dff_plot.jpg')
+
+% NON LOCAL DFF OF TEMPORAL MATRIX
+figure
+sig_C_or_nonlocaldf_plot =  imagesc(sig_C_or_nonlocaldf')
+title('Non Local DF Temporal Matrix Signal CalIm')
+saveas(sig_C_or_nonlocaldf_plot, 'sig_C_or_nonlocaldf_plot.jpg')
+
+% CALIM CD OF TEMPORAL MATRIX
+figure
+sig_C_df_plot =  imagesc(reshape(sig_C_df, [350 40])')
+title('Constrained Deconvolution Spiking Matrix Signal CalIm')
+saveas(sig_C_df_plot, 'sig_C_df_plot.jpg')
+
+% RAW MEAN
+figure
+sig_compressed_plot =  imagesc(sig_compressed')
+title('Mean of Raw Sig within ROI')
+saveas(sig_compressed_plot, 'sig_compressed_plot.jpg')
+
+% DERIV RAW MEAN 
+figure
+sig_compressed_deriv_plot =  imagesc(sig_compressed_deriv')
+title('Deriv of mean raw sig within ROI')
+saveas(sig_compressed_deriv_plot, 'sig_compressed_deriv_plot.jpg')
+
+% MERAV DFF OF RAW MEAN
+figure
+sig_compressed_dff_plot =  imagesc(sig_compressed_dff')
+title('Local DFF of raw sig within ROI')
+saveas(sig_compressed_dff_plot, 'sig_compressed_dff_plot.jpg')
+
+% NON LOCAL DFF OF RAW MEAN
+figure
+sig_compressed_nonlocaldf_plot =  imagesc(sig_compressed_nonlocaldf')
+title('Non Local DFF of raw sig within ROI')
+saveas(sig_compressed_nonlocaldf_plot, 'sig_compressed_nonlocaldf_plot.jpg')
+
+
+%% REAPPROPRIATE SAVE F(X) BELOW AS NEEDED
+
+save('sig_compressed_nonlocaldf', 'sig_compressed_nonlocaldf', '-v7.3')
+
