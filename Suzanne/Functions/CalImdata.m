@@ -11,7 +11,7 @@ function [A_or C_or trials frame_trial ODOR_ON] = CalImdata()
         % ODOR_ON: index for first 350 frames of data
 %%%%%%%%%%%%%%% 
 
-[fg, fdg] = uigetfile('.mat', 'CHOOSE GLOMULAR DATA - .mat');
+[fg, fdg] = uigetfile('.mat', 'CHOOSE SEGMENTED GLOMULAR DATA - .mat');
 cd(fdg);
 g_data = load(fg);
 trials = g_data.trials;
