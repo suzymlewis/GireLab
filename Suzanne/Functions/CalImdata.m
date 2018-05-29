@@ -9,6 +9,8 @@ function [A_or C_or trials frame_trial ODOR_ON] = CalImdata()
         % frame_trial: indicates which trial each frame is from
             % Entire session in temporal matrix horizontally concatenated
         % ODOR_ON: index for first 350 frames of data
+%%%%%%%%%%%%%%% 
+
 [fg, fdg] = uigetfile('.mat', 'CHOOSE GLOMULAR DATA - .mat');
 cd(fdg);
 g_data = load(fg);
