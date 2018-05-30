@@ -9,6 +9,7 @@ function [Eth] = ethdata(mxf);
         % Eth: Derivative of ethanol signal
             % Samples averaged across each frame
 %%%%%%%%%%%%%%% 
+%%%% NOTE TO SELF, CONSIDER INTERPOLATING TO MATCH EXACT TIMEPOINT OF FRAME ONSET?
 
 % DETERMINE MAX FRAME FROM WHICH TO GATHER CORRESPONDING ETH SIGNAL
 if nargin ==1 % Check to see if user input to designate max frame
