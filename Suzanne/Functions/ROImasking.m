@@ -40,9 +40,9 @@ end
 indx=1
 for i = 1:size(A_or, 1)
     if length(find(A_or_full(i,:)))>1
-        overlap(indx,1)=i
-        temp_glom = find(A_or_full(i,:)~=0)
-        overlap(indx,2:3) = temp_glom
+        overlap(indx,1)=i;
+        temp_glom = find(A_or_full(i,:)~=0);
+        overlap(indx,2:3) = temp_glom;
         indx=indx+1;
     end
 end
