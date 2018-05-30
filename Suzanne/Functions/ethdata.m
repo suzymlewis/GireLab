@@ -3,6 +3,8 @@ function [Eth] = ethdata(mxf);
 %%%%%%%%%%%%%%% LOADS RELEVANT VARIABLES FROM SEGMENTED DATA INTO WORKSPACE
     % INPUT (OPTIONAL)
         % mxf: max frame to which corresponding ethnol data retrieved
+            % Default: 400 frames, which is the majority of the trial
+            % Do not take sample for all frames automatically since frame number can vary across trial
     % OUTPUT
         % Eth: Derivative of ethanol signal
             % Samples averaged across each frame
