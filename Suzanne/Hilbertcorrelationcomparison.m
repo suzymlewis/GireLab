@@ -14,10 +14,15 @@ mxf = 350; % Set max frame for which to extract relevant ethanol signal
 
 %% HILBERT AMPLITUDE ENVELOPE OF DERIVE
 
+% Set Params
+glom = ; % Choose glomeruli signal to compare to eth signal
+tr = ; % Choose trial from which to compare signals
+
 % Bandpass butterworth filter 1-3Hz of each signal
 clear ethfilt cafilt
-X = diff(Eth(10, 1:349)');   
-XX = diff(squeeze(C_trial(14, 1:349 , 10))'); 
+X = diff(Eth(tr, 1:length(X)'));   
+XX = diff(squeeze(C_trial(glom, 1:length(X) , tr))'); 
+
 % BANDPASS
 Fs=20; %sampling rate
 n=4; %filter order, looks at last 9 samples?
@@ -33,7 +38,7 @@ hilbert1 = hilbert(ethfilt);
 hilbert2 = hilbert(cafilt);
 
 % Plot the am[plitude envelopes of the two filtered signals
-glom14_cor = figure
+glom_cor = figure
 plot(linspace(1, length(hilbert1), length(hilbert1)), abs(hilbert1))
 hold on
 plot(linspace(1, length(hilbert1), length(hilbert1)), abs(hilbert2))
@@ -43,7 +48,7 @@ hold off
 [r, lags] = xcorr(abs(hilbert1), abs(hilbert2), 1250);
 
 % Plot the cross corr
-glom1_xcor = figure
+glom_xcor = figure
 plot(lags, r) % Plot cross corr of two signals
 % plot(lags, r/max(r)) % Plot normalized cross corr of two signals
 
