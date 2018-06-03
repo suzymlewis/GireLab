@@ -19,9 +19,7 @@ Y_ca = comp.clc; % Downsampled raw data using median filter for neighboring pixe
 Y_ca = Y_ca (5:120, 5:160,:); % Drop areas of frame removed from motion correction to be consistent with segmented data
 frame_trial = comp.tr1a; % Vector containing trial assignment for each frame
 
-trials = max(frame_trial);
-
-for i = 1:length(trials) % LOOP THROUGH TRIALS
+for i = 1:max(frame_trial) % LOOP THROUGH TRIALS
         k = find(frame_trial ==i); % Get indices current trials samples
         temp = Y_ca(:,:,k); % Create array with only current looping trials information
         raw(:,:,:,i) = temp(:,:,1:450);
