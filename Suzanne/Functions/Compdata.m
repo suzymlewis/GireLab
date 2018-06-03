@@ -21,9 +21,11 @@ frame_trial = comp.tr1a; % Vector containing trial assignment for each frame
 
 trials = max(frame_trial);
 
-for i = 1:length(trials)
-        k = find(frame_trial ==i);
-        temp = Y_ca(:,:,k);
+for i = 1:length(trials) % LOOP THROUGH TRIALS
+        k = find(frame_trial ==i); % Get indices current trials samples
+        temp = Y_ca(:,:,k); % Create array with only current looping trials information
         raw(:,:,:,i) = temp(:,:,1:450);
+            % Since each trial is slightly different number of frames
+                % Grab the first 450 frames and store in 4D matrix
         clear temp
 end
