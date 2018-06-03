@@ -7,12 +7,12 @@ function [signal glomeruli] = get_signal(ROI, raw)
     % INPUT
         % ROI 
     % OUTPUT
-        % signal: m x n matrix containing Ca signal for all pixels lie
-        % within ROI's designated by CalIm CNMF
+        % signal: m x n matrix
+            % Ca signal for all pixels lie in ROI's designated by CalIm CNMF
             % Rows :  Pixels that fall within ROI's
             % Columns : samples for each timepoint sampled at 20 Hz
-        % glomeruli: n x 1 array designating the ROI assignment for each
-        % pixel row in the signal matrix
+        % glomeruli: n x 1 array
+            % ROI assignment for each pixel row in the signal matrix
 %%%%%%%%%%%%%%% 
 
 % Reshape raw for indexing with ROI assignments
