@@ -37,7 +37,7 @@ for i = 1:size(A, 3) % LOOP GLOMERULI
 end
 
 % Check for overlapping pixels between glomeruli
-indx=1
+indx=1;
 for i = 1:size(A_or, 1)
     if length(find(A_or_full(i,:)))>1
         overlap(indx,1)=i;
