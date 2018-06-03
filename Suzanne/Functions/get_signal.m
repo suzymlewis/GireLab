@@ -21,11 +21,13 @@ raw_=reshape(raw, [(size(raw, 1)*size(raw, 2)), size(raw, 3)]);
 signal=[]; % Create empty matrix to store Raw downsampled (median filtered) Ca Imaging data
     
 glomeruli = []; % Create an array to hold glomerular assigment for each row of signal matrix
-for i = 1:length(ROI)
-    temp_indx = ROI{i};
-    glom_temp = (ones(1, length(ROI{i})) * i)';
-    glomeruli= vertcat(glomeruli, glom_temp);
-    for ii = 1:size(temp_indx, 1)
-        signal((size(signal,1)+1),:) = raw_(temp_indx(ii),:);
+
+for i = 1:length(ROI) % LOOP OVER GLOMERULI
+    temp_indx = ROI{i}; % Grab indices for ROI pixels of looping glomeruli
+      % This indices correspond to a 116 x 156 pixel tif image frame
+    glom_temp = (ones(1, length(ROI{i})) * i)'; % Make an array with glomeruli number as long as number of glomeruli in ROI
+    glomeruli= vertcat(glomeruli, glom_temp); % Update array so will have glomeruli assignment for each row of signal
+    for ii = 1:size(temp_indx, 1) % LOOP THROUGH ROI PIXELS FOR CURRENT GLOMERULI
+        signal((size(signal,1)+1),:) = raw_(temp_indx(ii),:); % Vertically concatenate each ROI pixel's signal as new row row in signal matrix
     end
 end
