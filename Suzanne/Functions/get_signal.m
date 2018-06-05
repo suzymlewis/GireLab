@@ -5,7 +5,10 @@ function [signal glomeruli] = get_signal(ROI, raw)
 
 %%%%%%%%%%%%%%% LOADS RELEVANT VARIABLES FROM SEGMENTED DATA INTO WORKSPACE
     % INPUT
-        % ROI 
+        % ROI : cell structure where each cell is ROI as designated by CalIm CNMF
+            % Within each cell: m x 1  array
+                % m (rows) : all pixel associated with cell's ROI (glomeruli) 
+                  % Gives pixel index within the 116 x 152 concatenated pixel frame
     % OUTPUT
         % signal: m x n matrix
             % Ca signal for all pixels lie in ROI's designated by CalIm CNMF
