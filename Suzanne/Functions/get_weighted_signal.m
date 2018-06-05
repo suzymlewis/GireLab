@@ -1,18 +1,20 @@
 function [signal glomeruli] = get_weighted_signal(ROIweights, raw)
 
-%%%%%%%%%%%%%%% LOADS RELEVANT VARIABLES FROM SEGMENTED DATA INTO WORKSPACE
+%%%%%%%%%%%%%%% LOADS RAW PIXEL SIGNAL FROM COMPRESSED FILE THAT LIES WITHIN ROIs
     % INPUT
-        % ROI 
+        % ROIweights : cell structure where each cell is ROI as designated by CalIm CNMF
+            % Within each cell: m x 2  array
+                % m (rows) : all pixel associated with cell's ROI (glomeruli) 
+                % col 1 : pixel index within the 116 x 152 concatenated pixel frame
+                % col 2 : weight to give pixel when averaging glomeruli
     % OUTPUT
-        % signal: m x n x r matrix containing Ca signal for all pixels lie
-            % m : pixels
-            % n : timepoints
+        % signal: m x n x r matrix containing Ca signal for all pixels lie within ROI's designated by CalIm CNMF
+            % m : Pixels that fall within ROI's
+            % n : samples for each timepoint sampled at 20 Hz
             % r : trials
-        % within ROI's designated by CalIm CNMF
-            % Rows :  Pixels that fall within ROI's
-            % Columns : samples for each timepoint sampled at 20 Hz
-        % glomeruli: n x 1 array designating the ROI assignment for each
-        % pixel row in the signal matrix
+        % glomeruli: n x 2 array 
+            % Col 1 : designates the ROI (glomeruli) assignment for each pixel in signal
+            % Col 2 : designates weighting to that pixel
 %%%%%%%%%%%%%%% 
 
 % Reshape raw for indexing with ROI assignments
