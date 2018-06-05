@@ -21,7 +21,7 @@ function [turb_label] = get_turb(errors);
                 % 2 : High
 %%%%%%%%%%%%%%%
 if nargin == 0
-    warning('Please note this function assumes there are no errors in user input unless optional argument "errors" is used')
+    warning('Please note this function assumes there are no abnormalities in trial structure unless optional argument "errors" is used')
     i = input('Are trials 10-15 high(1) or low(2): ');
     turb_label(1:10) = 1;
     if i == 1
