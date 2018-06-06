@@ -1,10 +1,11 @@
 function [C C_od C_trials C_trials_od]=DFFcal(C_or, trials ,turb_label)
 %%%%%%%%%%%%%%% DFF GLOMERULAR CALCIUM
     % INPUT
-        % C_or
-        % trials
-         % turb_label = vector containing turbulence level for each trial
-          % within session
+        % C_or : Temporal matrix from CNMF CalIm package
+        % trials : Array [1:m]
+            % m: number of trials used in analysis for the given session
+        % turb_label = vector containing turbulence level for each trial
+           % within session
             % 0 = Low
             % 1 = Med
             % 2 = High
