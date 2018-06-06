@@ -16,8 +16,10 @@ function [Glom_Sig resp] = ROI_sig(C_trials, glomeruli)
         % Glom_Sig: m x n
             % m : number ROIs
             % n : timepoints for all trials concatenated horizontally
-        % glomeruli: n x 1 array
-            % ROI assignment for each pixel row in the signal matrix
+        % resp: n x 1 array
+            % ROIs indices for ROI's sorted by max magnitude response across session
+                % Sorted low - high
+                % Can use to index first dimension of Glom_Sig when making figures to sort ROI's
 %%%%%%%%%%%%%%% 
 
 if size(glomeruli, 2) == 2
