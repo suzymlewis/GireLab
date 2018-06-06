@@ -9,10 +9,18 @@ function [C C_od C_trials C_trials_od]=DFFcal(C_or, trials ,turb_label)
             % 1 = Med
             % 2 = High
     % OUTPUT
-        % C
-        % C_od
-        % C_trials
-        % C_trials_od
+        % C : 5 x 1 cell structure
+                % Cell 1 : All trials
+                % Cell 2 : High turbulence trials only
+                % Cell 3 : Medium turbulence trials only
+                % Cell 4 : Low turbulence trials only 
+                % Cell 5 : High and Low turbulence trials only
+        % C_od : Same as above but only includes part of odor exposure from each trial
+        % C_trials : m x n x r
+            % m : number of pixels across all ROI's
+            % n : number of timepoints sampled in each trial
+            % r : number of trials
+        % C_trials_od : same as C_trials but only includes portion of odor exposure during each trial
 %%%%%%%%%%%%%%%
 
 % 3D mat with glom calcium signal across each timepoint across each trial
